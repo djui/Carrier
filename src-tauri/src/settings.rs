@@ -57,6 +57,11 @@ pub(crate) struct Settings {
     pub(crate) menu_bar_only: bool,
     /// Windows/Linux: hide the native application menu from Messenger windows.
     pub(crate) hide_menu_bar: bool,
+    /// Linux: hide the window title bar. Aimed at tiling window managers, where
+    /// the compositor moves/closes windows and the GTK header bar is dead
+    /// weight; on floating desktops it also removes dragging and the close
+    /// button, so it stays opt-in.
+    pub(crate) hide_title_bar: bool,
     /// Windows: hide the main window into the tray when it is minimized.
     pub(crate) hide_on_minimize: bool,
     /// Windows: hide the main window into the tray when it loses focus.
@@ -166,6 +171,7 @@ impl Default for Settings {
             theme: "system".into(),
             menu_bar_only: false,
             hide_menu_bar: false,
+            hide_title_bar: false,
             hide_on_minimize: false,
             hide_on_focus_loss: false,
             hide_taskbar_icon: false,
@@ -625,6 +631,8 @@ pub(crate) fn apply_settings(app: &tauri::AppHandle, s: &Settings) {
             } else {
                 window.show_menu()
             };
+            #[cfg(target_os = "linux")]
+            let _ = window.set_decorations(!s.hide_title_bar);
             // Push the new prefs to the running page so JS-side settings
             // (spell-check) refresh without a reload.
             if let Some(ref json) = settings_json {
@@ -754,6 +762,7 @@ mod tests {
         assert_eq!(s.theme, "system", "theme should default to 'system'");
         assert!(!s.menu_bar_only, "menu_bar_only should default to false");
         assert!(!s.hide_menu_bar, "hide_menu_bar should default to false");
+        assert!(!s.hide_title_bar, "hide_title_bar should default to false");
         assert!(
             !s.hide_on_minimize,
             "hide_on_minimize should default to false"
@@ -914,6 +923,13 @@ mod tests {
         // Pre-existing installs have no `hide_menu_bar` key in settings.json.
         let s: Settings = serde_json::from_str("{}").unwrap();
         assert!(!s.hide_menu_bar);
+    }
+
+    #[test]
+    fn settings_json_missing_hide_title_bar_defaults_to_false() {
+        // Pre-existing installs have no `hide_title_bar` key in settings.json.
+        let s: Settings = serde_json::from_str("{}").unwrap();
+        assert!(!s.hide_title_bar);
     }
 
     #[test]
