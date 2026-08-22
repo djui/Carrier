@@ -114,7 +114,7 @@ pub(crate) fn build_app_window(
     let download_reveal_token = uuid::Uuid::new_v4().simple().to_string();
     let download_handle = app.clone();
     let download_label = label.to_string();
-    let window = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
+    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
         .title(APP_TITLE)
         .inner_size(1200.0, 780.0)
         .min_inner_size(420.0, 520.0)
@@ -293,21 +293,23 @@ pub(crate) fn build_app_window(
                 true
             }
             _ => true,
-        })
-        .build()
-        .inspect(|window| {
-            #[cfg(target_os = "linux")]
-            crate::linux::configure_messenger_webview_memory(window);
-            // New windows inherit the current always-on-top preference.
-            let _ = window.set_always_on_top(settings.always_on_top);
-            #[cfg(not(target_os = "macos"))]
-            if settings.hide_menu_bar {
-                let _ = window.hide_menu();
-            }
-            // macOS: let the themed window background show through the title bar.
-            #[cfg(target_os = "macos")]
-            make_webview_transparent(window);
-        })?;
+        });
+    // Linux: drop the GTK header bar when the user asked for it (tiling WMs).
+    #[cfg(target_os = "linux")]
+    let builder = builder.decorations(!settings.hide_title_bar);
+    let window = builder.build().inspect(|window| {
+        #[cfg(target_os = "linux")]
+        crate::linux::configure_messenger_webview_memory(window);
+        // New windows inherit the current always-on-top preference.
+        let _ = window.set_always_on_top(settings.always_on_top);
+        #[cfg(not(target_os = "macos"))]
+        if settings.hide_menu_bar {
+            let _ = window.hide_menu();
+        }
+        // macOS: let the themed window background show through the title bar.
+        #[cfg(target_os = "macos")]
+        make_webview_transparent(window);
+    })?;
     let token_cleanup_value = download_reveal_token.clone();
     {
         let state = app.state::<AppState>();
