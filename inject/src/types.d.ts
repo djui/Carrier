@@ -26,6 +26,8 @@ interface CarrierSettings {
   unread_badge?: boolean;
   /** "messages" (page-title total) or "conversations" (bold chat rows). */
   badge_mode?: "messages" | "conversations";
+  /** Skip badge and native notifications for Facebook-muted conversations. */
+  ignore_muted_conversations?: boolean;
   /** "system", "light", or "dark". */
   theme?: "system" | "light" | "dark";
   menu_bar_only?: boolean;
@@ -157,6 +159,8 @@ interface Window {
 interface XMLHttpRequest {
   /** Set by the telemetry blocker in open(), consumed in send(). */
   __carrierBlocked?: boolean;
+  /** Set by mute harvest in open(), consumed in send(). */
+  __carrierMuteHarvest?: boolean;
 }
 
 interface Element {
